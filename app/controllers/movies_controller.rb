@@ -23,8 +23,8 @@ class MoviesController < ApplicationController
 
   def create
     @movie = Movie.create!(movie_params)
-    flash[:notice] = "#{@movie.title} was successfully created."
-    redirect_to movies_path
+    flash[:success] = "#{@movie.title} was successfully created."
+    redirect_to search_tmdb_movies_path
   end
 
   def edit
@@ -34,18 +34,39 @@ class MoviesController < ApplicationController
   def update
     @movie = Movie.find params[:id]
     @movie.update!(movie_params)
-    flash[:notice] = "#{@movie.title} was successfully updated."
+    flash[:success] = "#{@movie.title} was successfully updated."
     redirect_to movie_path(@movie)
   end
 
   def destroy
     @movie = Movie.find(params[:id])
     @movie.destroy
-    flash[:notice] = "Movie '#{@movie.title}' deleted."
+    flash[:success] = "Movie '#{@movie.title}' deleted."
     redirect_to movies_path
   end
 
+  def search_tmdb
+    # initial page visit
+    return unless params[:submitted] == "1"
+
+    if params[:title].blank?
+      flash.now[:danger] = "Please fill in all required fields!"
+      return
+    end
+    @movies = Movie.find_in_tmdb({title: params[:title], release_year: params[:release_year], language: params[:language]})
+    if @movies.empty?
+      flash.now[:danger] = "No movies found with given parameters!"
+      return
+    end
+  end
+
   private
+
+  def movie_params
+    params.require(:movie).permit(
+      :title, :rating, :description, :release_date
+    )
+  end
 
   def force_index_redirect
     return unless !params.key?(:ratings) || !params.key?(:sort_by)
